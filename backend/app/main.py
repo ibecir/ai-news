@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.session import init_db, close_db
+from app.db.redis import RedisClient
 from app.api.v1.router import api_router
 
 
@@ -15,16 +16,27 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
     print("Starting up...")
-    
+
     # Initialize database
     await init_db()
     print("Database initialized")
-    
+
+    # Initialize Redis cache
+    if settings.REDIS_ENABLED:
+        redis_client = await RedisClient.get_client()
+        if redis_client:
+            print("Redis cache initialized")
+        else:
+            print("Redis cache disabled (connection failed)")
+    else:
+        print("Redis cache disabled (REDIS_ENABLED=False)")
+
     yield
-    
+
     # Shutdown
     print("Shutting down...")
     await close_db()
+    await RedisClient.close()
     print("Cleanup complete")
 
 

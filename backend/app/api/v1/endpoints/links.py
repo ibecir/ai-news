@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.db.redis import get_redis
 from app.models.link import LinkStatus
 from app.schemas import (
     LinkCreate,
@@ -20,6 +21,7 @@ from app.schemas import (
     MessageResponse,
 )
 from app.services import UserService, LinkService, scraper_service
+from app.services.cache_service import CacheService
 
 router = APIRouter(prefix="/links", tags=["Links"])
 
@@ -56,23 +58,26 @@ async def get_links(
     status_filter: Optional[LinkStatus] = Query(None, description="Filter by status"),
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
 ):
     """
     Get paginated list of user's links.
     """
-    link_service = LinkService(db)
-    
-    result = await link_service.get_user_links(
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
+
+    result, from_cache = await link_service.get_user_links(
         user_id=user_id,
         page=page,
         page_size=page_size,
         status=status_filter,
     )
-    
+
     return APIResponse(
         success=True,
         message=f"Retrieved {len(result.items)} links",
         data=result,
+        from_cache=from_cache,
     )
 
 
@@ -85,12 +90,14 @@ async def create_link(
     link_data: LinkCreate,
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
 ):
     """
     Create a new link for verification.
     """
-    link_service = LinkService(db)
-    
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
+
     # Check if URL already exists for this user
     url_str = str(link_data.url)
     if await link_service.check_url_exists(user_id, url_str):
@@ -98,9 +105,9 @@ async def create_link(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This URL has already been added to your account.",
         )
-    
+
     link = await link_service.create(user_id, link_data)
-    
+
     return APIResponse(
         success=True,
         message="Link created successfully. Processing will begin shortly.",
@@ -115,17 +122,20 @@ async def create_link(
 async def get_link_stats(
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
 ):
     """
     Get statistics about user's links.
     """
-    link_service = LinkService(db)
-    stats = await link_service.get_stats(user_id)
-    
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
+    stats, from_cache = await link_service.get_stats(user_id)
+
     return APIResponse(
         success=True,
         message="Statistics retrieved successfully",
         data=stats,
+        from_cache=from_cache,
     )
 
 
@@ -140,13 +150,15 @@ async def get_link(
     link_id: int,
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
 ):
     """
     Get detailed information about a specific link.
     """
-    link_service = LinkService(db)
-    link = await link_service.get_by_id(link_id, user_id)
-    
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
+    link, from_cache = await link_service.get_by_id(link_id, user_id)
+
     if not link:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -192,6 +204,7 @@ async def get_link(
         success=True,
         message="Link details retrieved",
         data=response,
+        from_cache=from_cache,
     )
 
 
@@ -207,19 +220,21 @@ async def update_link(
     link_data: LinkUpdate,
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
 ):
     """
     Update a link's metadata.
     """
-    link_service = LinkService(db)
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
     link = await link_service.update(link_id, user_id, link_data)
-    
+
     if not link:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Link not found",
         )
-    
+
     return APIResponse(
         success=True,
         message="Link updated successfully",
@@ -238,19 +253,21 @@ async def delete_link(
     link_id: int,
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
 ):
     """
     Delete a link.
     """
-    link_service = LinkService(db)
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
     deleted = await link_service.delete(link_id, user_id)
-    
+
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Link not found",
         )
-    
+
     return MessageResponse(
         success=True,
         message="Link deleted successfully",
@@ -268,13 +285,15 @@ async def scrape_link(
     link_id: int,
     user_id: int = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
 ):
     """
     Manually trigger scraping for a link.
     """
-    link_service = LinkService(db)
-    link = await link_service.get_by_id(link_id, user_id)
-    
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
+    link, _ = await link_service.get_by_id(link_id, user_id)
+
     if not link:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

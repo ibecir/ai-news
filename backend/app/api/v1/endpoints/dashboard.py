@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.db.redis import get_redis
 from app.schemas import UserWithStats, LinkStats, APIResponse
 from app.services import UserService, LinkService
+from app.services.cache_service import CacheService
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -18,13 +20,15 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 async def get_dashboard(
     x_user_email: str = Header(..., description="User's email address"),
     db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
 ):
     """
     Get complete dashboard data including user info and statistics.
     """
     user_service = UserService(db)
-    link_service = LinkService(db)
-    
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
+
     # Get user
     user = await user_service.get_by_email(x_user_email)
     if not user:
@@ -32,20 +36,20 @@ async def get_dashboard(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
-    
+
     # Get user with stats
     user_with_stats = await user_service.get_user_with_stats(user)
-    print("USER WITH STATS IS #### ", user_with_stats)
-    # Get detailed link stats
-    link_stats = await link_service.get_stats(user.id)
-    print("USER LINKS #### ", user_with_stats)
-    # Get recent links
-    recent_links = await link_service.get_user_links(
+
+    # Get detailed link stats (returns tuple now)
+    link_stats, stats_from_cache = await link_service.get_stats(user.id)
+
+    # Get recent links (returns tuple now)
+    recent_links, links_from_cache = await link_service.get_user_links(
         user_id=user.id,
         page=1,
         page_size=5,
     )
-    
+
     return APIResponse(
         success=True,
         message="Dashboard data retrieved successfully",
@@ -60,5 +64,6 @@ async def get_dashboard(
                 "links_by_status": link_stats.links_by_status,
             },
             "recent_links": [item.model_dump() for item in recent_links.items],
-        }
+        },
+        from_cache=stats_from_cache or links_from_cache,  # True if any data from cache
     )

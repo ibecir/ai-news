@@ -12,6 +12,7 @@ class APIResponse(BaseModel, Generic[T]):
     success: bool
     message: str
     data: Optional[T] = None
+    from_cache: Optional[bool] = None  # Debug flag for cache hit/miss
 
 
 class ErrorResponse(BaseModel):

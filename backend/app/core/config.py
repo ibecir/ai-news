@@ -24,7 +24,12 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
-    
+
+    # Redis Cache
+    REDIS_URL: str = "redis://localhost:6379"
+    REDIS_TTL: int = 300  # Cache TTL in seconds (5 minutes)
+    REDIS_ENABLED: bool = True
+
     class Config:
         env_file = ".env"
         case_sensitive = True
