@@ -77,7 +77,7 @@ function AppRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename="/news">
         <AppRoutes />
       </BrowserRouter>
     </QueryClientProvider>
