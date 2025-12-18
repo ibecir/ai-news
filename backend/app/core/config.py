@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     
     # Database (localhost PostgreSQL with psycopg driver)
-    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/news_verifier"
+    DATABASE_URL: str = "postgresql+psycopg://doadmin:AVNS_hP5k9TRTHEoU3C76QnE@it-master-psql-do-user-9129002-0.f.db.ondigitalocean.com:25060/defaultdb"
     DATABASE_ECHO: bool = False
     
     # Scraping
