@@ -328,3 +328,43 @@ async def scrape_link(
         message="Scraping completed" if not scraped.error else f"Scraping failed: {scraped.error}",
         data=LinkResponse.model_validate(link),
     )
+
+
+@router.post(
+    "/webhook/embeddings-complete",
+    response_model=MessageResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Link not found"},
+    }
+)
+async def embeddings_complete_webhook(
+    url: str = Query(..., description="The URL that was processed"),
+    db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
+):
+    """
+    Webhook endpoint for n8n to call after successfully creating embeddings.
+    This updates the link status to 'scraped'.
+
+    n8n should call this endpoint after processing embeddings with:
+    POST /api/v1/links/webhook/embeddings-complete?url=<the-url>
+    """
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
+
+    # Find the link by URL
+    link = await link_service.get_by_url(url)
+
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Link not found",
+        )
+
+    # Update status to scraped
+    await link_service.update_status(link, LinkStatus.SCRAPED)
+
+    return MessageResponse(
+        success=True,
+        message="Link status updated to scraped successfully",
+    )

@@ -9,17 +9,19 @@ export function AddLink() {
   const queryClient = useQueryClient();
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [addedUrl, setAddedUrl] = useState('');
+  const [linkId, setLinkId] = useState<number | null>(null);
+  const [isAddingToKnowledgeBase, setIsAddingToKnowledgeBase] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (url: string) => api.createLink({ url }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['links'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      if (data.data) {
-        navigate(`/links/${data.data.id}`);
-      } else {
-        navigate('/links');
-      }
+      setAddedUrl(url);
+      setLinkId(data.data?.id || null);
+      setShowConfirmDialog(true);
     },
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { detail?: string } } };
@@ -40,6 +42,37 @@ export function AddLink() {
     }
 
     mutation.mutate(url);
+  };
+
+  const handleAddToKnowledgeBase = async () => {
+    setIsAddingToKnowledgeBase(true);
+    try {
+      await fetch('https://itmc.ibu.ba/webhook/a63a7f08-5538-4c27-b038-5062d1302b5a', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: addedUrl }),
+      });
+    } catch (error) {
+      console.error('Failed to add to knowledge base:', error);
+    } finally {
+      setIsAddingToKnowledgeBase(false);
+      navigateToLink();
+    }
+  };
+
+  const handleSkipKnowledgeBase = () => {
+    navigateToLink();
+  };
+
+  const navigateToLink = () => {
+    setShowConfirmDialog(false);
+    if (linkId) {
+      navigate(`/links/${linkId}`);
+    } else {
+      navigate('/links');
+    }
   };
 
   return (
@@ -131,6 +164,43 @@ export function AddLink() {
           </ul>
         </div>
       </main>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Add to Knowledge Base?
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Do you want to add this link to knowledge base? This will create vector embeddings for better analysis.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSkipKnowledgeBase}
+                disabled={isAddingToKnowledgeBase}
+                className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                No, Skip
+              </button>
+              <button
+                onClick={handleAddToKnowledgeBase}
+                disabled={isAddingToKnowledgeBase}
+                className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isAddingToKnowledgeBase ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Adding...</span>
+                  </>
+                ) : (
+                  <span>Yes, Add</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

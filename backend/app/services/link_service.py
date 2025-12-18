@@ -390,3 +390,13 @@ class LinkService:
             .where(Link.user_id == user_id, Link.url == url)
         )
         return (result.scalar() or 0) > 0
+
+    async def get_by_url(self, url: str) -> Optional[Link]:
+        """Get link by URL (across all users)."""
+        result = await self.db.execute(
+            select(Link)
+            .where(Link.url == url)
+            .order_by(desc(Link.created_at))
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
