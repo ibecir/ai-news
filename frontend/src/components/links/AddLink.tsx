@@ -47,13 +47,21 @@ export function AddLink() {
   const handleAddToKnowledgeBase = async () => {
     setIsAddingToKnowledgeBase(true);
     try {
-      await fetch('https://itmc.ibu.ba/webhook/a63a7f08-5538-4c27-b038-5062d1302b5a', {
+      // Send webhook to n8n
+      const webhookResponse = await fetch('https://itmc.ibu.ba/webhook/a63a7f08-5538-4c27-b038-5062d1302b5a', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ url: addedUrl }),
       });
+
+      // If webhook succeeded, mark link as scraped
+      if (webhookResponse.ok && linkId) {
+        await api.markLinkAsScraped(linkId);
+        queryClient.invalidateQueries({ queryKey: ['links'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      }
     } catch (error) {
       console.error('Failed to add to knowledge base:', error);
     } finally {

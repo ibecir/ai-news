@@ -131,6 +131,11 @@ class ApiService {
     return response.data;
   }
 
+  async markLinkAsScraped(linkId: number): Promise<APIResponse<Link>> {
+    const response = await this.client.post<APIResponse<Link>>(`/links/${linkId}/mark-scraped`);
+    return response.data;
+  }
+
   async getLinkStats(): Promise<APIResponse<LinkStats>> {
     const response = await this.client.get<APIResponse<LinkStats>>('/links/stats');
     return response.data;

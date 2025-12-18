@@ -331,6 +331,43 @@ async def scrape_link(
 
 
 @router.post(
+    "/{link_id}/mark-scraped",
+    response_model=APIResponse[LinkResponse],
+    responses={
+        404: {"model": ErrorResponse, "description": "Link not found"},
+    }
+)
+async def mark_link_as_scraped(
+    link_id: int,
+    user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis),
+):
+    """
+    Mark a link as scraped after embeddings are created.
+    Called by frontend after successful webhook response.
+    """
+    cache_service = CacheService(redis) if redis else None
+    link_service = LinkService(db, cache_service)
+    link, _ = await link_service.get_by_id(link_id, user_id)
+
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Link not found",
+        )
+
+    # Update status to scraped
+    link = await link_service.update_status(link, LinkStatus.scraped)
+
+    return APIResponse(
+        success=True,
+        message="Link marked as scraped successfully",
+        data=LinkResponse.model_validate(link),
+    )
+
+
+@router.post(
     "/webhook/embeddings-complete",
     response_model=MessageResponse,
     responses={
