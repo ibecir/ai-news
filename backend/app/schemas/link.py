@@ -12,6 +12,7 @@ from app.models.link import LinkStatus
 class LinkCreate(BaseModel):
     """Schema for creating a new link."""
     url: HttpUrl
+    title: Optional[str] = None
 
 
 class LinkUpdate(BaseModel):

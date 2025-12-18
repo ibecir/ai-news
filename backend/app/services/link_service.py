@@ -37,6 +37,7 @@ class LinkService:
         link = Link(
             user_id=user_id,
             url=str(link_data.url),
+            title=link_data.title,
             source_domain=source_domain,
             status=LinkStatus.pending,
             created_at=datetime.utcnow(),

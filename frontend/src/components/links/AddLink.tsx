@@ -8,6 +8,7 @@ export function AddLink() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [url, setUrl] = useState('');
+  const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [addedUrl, setAddedUrl] = useState('');
@@ -15,7 +16,7 @@ export function AddLink() {
   const [isAddingToKnowledgeBase, setIsAddingToKnowledgeBase] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: (url: string) => api.createLink({ url }),
+    mutationFn: (data: { url: string; title?: string }) => api.createLink(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['links'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -41,7 +42,7 @@ export function AddLink() {
       return;
     }
 
-    mutation.mutate(url);
+    mutation.mutate({ url, title: title.trim() || undefined });
   };
 
   const handleAddToKnowledgeBase = async () => {
@@ -126,6 +127,21 @@ export function AddLink() {
                 className="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 disabled={mutation.isPending}
                 required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                Title (Optional)
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter a custom title for this link"
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                disabled={mutation.isPending}
               />
             </div>
 

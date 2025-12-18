@@ -100,6 +100,7 @@ export interface PaginatedLinks {
 
 export interface LinkCreateRequest {
   url: string;
+  title?: string;
 }
 
 export interface LinkUpdateRequest {
