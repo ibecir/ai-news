@@ -2,7 +2,6 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import type {
   APIResponse,
   UserWithStats,
-  LinkWithVerification,
   LinkDetail,
   LinkStats,
   PaginatedLinks,
@@ -13,7 +12,7 @@ import type {
   Link,
 } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/news/api/v1';
 
 class ApiService {
   private client: AxiosInstance;
