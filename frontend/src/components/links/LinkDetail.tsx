@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import {
   ArrowLeft,
   ExternalLink,
@@ -13,6 +13,9 @@ import {
   Calendar,
   Globe,
   Loader2,
+  Edit3,
+  Save,
+  X,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
@@ -41,11 +44,22 @@ export function LinkDetail() {
   const queryClient = useQueryClient();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isAddingToKnowledgeBase, setIsAddingToKnowledgeBase] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['link', id],
     queryFn: () => api.getLink(Number(id)),
     enabled: !!id,
+  });
+
+  const updateTitleMutation = useMutation({
+    mutationFn: (title: string) => api.updateLink(Number(id), { title }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['link', id] });
+      queryClient.invalidateQueries({ queryKey: ['links'] });
+      setIsEditingTitle(false);
+    },
   });
 
   const handleProcessLinkClick = () => {
@@ -83,6 +97,22 @@ export function LinkDetail() {
 
   const handleSkipKnowledgeBase = () => {
     setShowConfirmDialog(false);
+  };
+
+  const handleEditTitle = () => {
+    setEditedTitle(data?.data?.title || '');
+    setIsEditingTitle(true);
+  };
+
+  const handleSaveTitle = () => {
+    if (editedTitle.trim()) {
+      updateTitleMutation.mutate(editedTitle.trim());
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingTitle(false);
+    setEditedTitle('');
   };
 
   if (isLoading) {
@@ -159,12 +189,56 @@ export function LinkDetail() {
             {/* Article Info Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex items-start justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {link.title || 'Untitled Article'}
-                </h2>
+                <div className="flex-1 mr-4">
+                  {isEditingTitle ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editedTitle}
+                        onChange={(e) => setEditedTitle(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-semibold"
+                        placeholder="Enter title"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveTitle();
+                          if (e.key === 'Escape') handleCancelEdit();
+                        }}
+                      />
+                      <button
+                        onClick={handleSaveTitle}
+                        disabled={updateTitleMutation.isPending || !editedTitle.trim()}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Save"
+                      >
+                        <Save className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={updateTitleMutation.isPending}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Cancel"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <h2 className="text-xl font-semibold text-gray-900 flex-1">
+                        {link.title || 'Untitled Article'}
+                      </h2>
+                      <button
+                        onClick={handleEditTitle}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Edit title"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <span
                   className={clsx(
-                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium',
+                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium flex-shrink-0',
                     status.bgColor,
                     status.color
                   )}
