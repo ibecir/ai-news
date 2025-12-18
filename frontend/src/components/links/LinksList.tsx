@@ -12,6 +12,8 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
@@ -32,6 +34,9 @@ export function LinksList() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [selectedLink, setSelectedLink] = useState<LinkWithVerification | null>(null);
+  const [isAddingToKnowledgeBase, setIsAddingToKnowledgeBase] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['links', page, statusFilter],
@@ -52,6 +57,40 @@ export function LinksList() {
     if (confirm('Are you sure you want to delete this link?')) {
       deleteMutation.mutate(linkId);
     }
+  };
+
+  const handleProcessLinkClick = (e: React.MouseEvent, link: LinkWithVerification) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedLink(link);
+    setShowConfirmDialog(true);
+  };
+
+  const handleAddToKnowledgeBase = async () => {
+    if (!selectedLink) return;
+
+    setIsAddingToKnowledgeBase(true);
+    try {
+      await fetch('https://itmc.ibu.ba/webhook/a63a7f08-5538-4c27-b038-5062d1302b5a', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: selectedLink.url }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['links'] });
+    } catch (error) {
+      console.error('Failed to add to knowledge base:', error);
+    } finally {
+      setIsAddingToKnowledgeBase(false);
+      setShowConfirmDialog(false);
+      setSelectedLink(null);
+    }
+  };
+
+  const handleSkipKnowledgeBase = () => {
+    setShowConfirmDialog(false);
+    setSelectedLink(null);
   };
 
   if (isLoading) {
@@ -203,6 +242,15 @@ export function LinksList() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {link.status === 'pending' && (
+                              <button
+                                onClick={(e) => handleProcessLinkClick(e, link)}
+                                className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Process Link"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                              </button>
+                            )}
                             <a
                               href={link.url}
                               target="_blank"
@@ -258,6 +306,43 @@ export function LinksList() {
           </div>
         )}
       </main>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Add to Knowledge Base?
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Do you want to add this link to knowledge base? This will create vector embeddings for better analysis.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSkipKnowledgeBase}
+                disabled={isAddingToKnowledgeBase}
+                className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                No, Skip
+              </button>
+              <button
+                onClick={handleAddToKnowledgeBase}
+                disabled={isAddingToKnowledgeBase}
+                className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isAddingToKnowledgeBase ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Adding...</span>
+                  </>
+                ) : (
+                  <span>Yes, Add</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

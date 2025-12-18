@@ -301,15 +301,15 @@ async def scrape_link(
         )
     
     # Update status to processing
-    link = await link_service.update_status(link, LinkStatus.PROCESSING)
+    link = await link_service.update_status(link, LinkStatus.processing)
     
     # Scrape the article
     scraped = await scraper_service.scrape(link.url)
     
     if scraped.error:
         link = await link_service.update_status(
-            link, 
-            LinkStatus.FAILED, 
+            link,
+            LinkStatus.failed,
             error_message=scraped.error
         )
     else:
@@ -321,7 +321,7 @@ async def scrape_link(
             author=scraped.author,
             published_at=scraped.published_at,
         )
-        link = await link_service.update_status(link, LinkStatus.SCRAPED)
+        link = await link_service.update_status(link, LinkStatus.scraped)
     
     return APIResponse(
         success=True,
@@ -362,7 +362,7 @@ async def embeddings_complete_webhook(
         )
 
     # Update status to scraped
-    await link_service.update_status(link, LinkStatus.SCRAPED)
+    await link_service.update_status(link, LinkStatus.scraped)
 
     return MessageResponse(
         success=True,

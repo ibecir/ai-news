@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,6 +12,7 @@ import {
   User,
   Calendar,
   Globe,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
@@ -37,6 +39,8 @@ export function LinkDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isAddingToKnowledgeBase, setIsAddingToKnowledgeBase] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['link', id],
@@ -50,6 +54,35 @@ export function LinkDetail() {
       queryClient.invalidateQueries({ queryKey: ['link', id] });
     },
   });
+
+  const handleProcessLinkClick = () => {
+    setShowConfirmDialog(true);
+  };
+
+  const handleAddToKnowledgeBase = async () => {
+    if (!data?.data?.url) return;
+
+    setIsAddingToKnowledgeBase(true);
+    try {
+      await fetch('https://itmc.ibu.ba/webhook/a63a7f08-5538-4c27-b038-5062d1302b5a', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: data.data.url }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['link', id] });
+    } catch (error) {
+      console.error('Failed to add to knowledge base:', error);
+    } finally {
+      setIsAddingToKnowledgeBase(false);
+      setShowConfirmDialog(false);
+    }
+  };
+
+  const handleSkipKnowledgeBase = () => {
+    setShowConfirmDialog(false);
+  };
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -94,14 +127,14 @@ export function LinkDetail() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
-              {(link.status === 'pending' || link.status === 'failed') && (
+              {link.status === 'pending' && (
                 <button
-                  onClick={() => scrapeMutation.mutate()}
-                  disabled={scrapeMutation.isPending}
+                  onClick={handleProcessLinkClick}
+                  disabled={isAddingToKnowledgeBase}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw className={clsx('h-4 w-4', scrapeMutation.isPending && 'animate-spin')} />
-                  {scrapeMutation.isPending ? 'Processing...' : 'Process Link'}
+                  <RefreshCw className={clsx('h-4 w-4', isAddingToKnowledgeBase && 'animate-spin')} />
+                  Process Link
                 </button>
               )}
               <a
@@ -319,6 +352,43 @@ export function LinkDetail() {
           </div>
         </div>
       </main>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Add to Knowledge Base?
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Do you want to add this link to knowledge base? This will create vector embeddings for better analysis.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSkipKnowledgeBase}
+                disabled={isAddingToKnowledgeBase}
+                className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                No, Skip
+              </button>
+              <button
+                onClick={handleAddToKnowledgeBase}
+                disabled={isAddingToKnowledgeBase}
+                className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isAddingToKnowledgeBase ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Adding...</span>
+                  </>
+                ) : (
+                  <span>Yes, Add</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
