@@ -48,13 +48,6 @@ export function LinkDetail() {
     enabled: !!id,
   });
 
-  const scrapeMutation = useMutation({
-    mutationFn: () => api.scrapeLink(Number(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['link', id] });
-    },
-  });
-
   const handleProcessLinkClick = () => {
     setShowConfirmDialog(true);
   };
