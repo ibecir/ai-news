@@ -1,5 +1,7 @@
 #!/bin/bash
 cd /var/www/news-verifier
+git fetch origin
+git reset --hard origin/main
 git pull origin main
 
 pkill -9 node
