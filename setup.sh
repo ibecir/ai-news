@@ -1,19 +1,20 @@
 #!/bin/bash
-
 cd /var/www/news-verifier
+git pull origin main
 
-cd backend
+pkill -9 node
+cd frontend
+rm -rf dist/
+npm install
+npm run build
+cd ../backend
+
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
-deactivate
-cd ..
+nohup uvicorn app.main:app --host 127.0.0.1 --port 8001 &
 
-cd frontend
-npm install
-echo "VITE_API_URL=/news/api/v1" > .env
-npm run build
-cd ..
+cd /home/n8n/
+docker compose up -d --build
 
 echo "Setup complete!"
