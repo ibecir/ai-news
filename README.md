@@ -382,3 +382,24 @@ npm run dev -- --port 3001
 ## License
 
 MIT License
+
+# 138.197.186.201
+# F#R79z6l9Yxb
+
+# context7.com - ctx7sk-eb8cebe4-58cb-4d2d-87eb-3322d6056976
+# claude mcp add context7 --scope project -- npx -y @upstash/context7-mcp --api-key ctx7sk-eb8cebe4-58cb-4d2d-87eb-3322d6056976
+# Use Context 7 to check up-to-date documentation when needed for impleting new libraries or frameworks, or adding features using them.
+
+# https://github.com/microsoft/playwright-mcp - for open browser, take screenshot
+# claude mcp add playwright --scope project npx @playwright/mcp@latest
+# Open a browser and navigate to the klix.ba and explain to me what this site is about.
+
+# /agents -> Expert UI & UX engineer who reviews the UI and UX of React components in                                                              │
+# browser vy using Playwright MCP, takes screenshots, then offers feedback on how                                                       │
+# to improve the component in terms of visual design, user experience and                                                               │
+# accessibility.  
+
+# Expert UI & UX engineer who reviews the UI and UX of React components in browser by using Playwright MCP, takes screenshots, then offers feedback on how to improve the component in terms of visual design, user experience and accessibility.
+
+# /ui-component ModalComponent "Make a clena, morn looking modal, which also has a semi transparent backdrop."
+
