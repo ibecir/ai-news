@@ -9,6 +9,7 @@ import { LinksList } from '@/components/links/LinksList';
 import { AddLink } from '@/components/links/AddLink';
 import { LinkDetail } from '@/components/links/LinkDetail';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
+import ModalTest from '@/pages/ModalTest';
 
 // Create Query Client
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ function AppRoutes() {
         path="/"
         element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginForm />}
       />
+      <Route path="/modal-test" element={<ModalTest />} />
 
       {/* Protected Routes */}
       <Route
