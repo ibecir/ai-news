@@ -7,7 +7,7 @@ A full-stack application for verifying news article credibility with intelligent
 | Layer | Technology |
 |-------|------------|
 | **Frontend** | React 18, TypeScript, Vite, TailwindCSS, React Query, Zustand |
-| **Backend** | Python 3.11, FastAPI, SQLAlchemy 2.0, Pydantic |
+| **Backend** | Python 3.1, FastAPI, SQLAlchemy 2.0, Pydantic |
 | **Database** | PostgreSQL |
 | **Cache** | Redis (optional, with graceful degradation) |
 
